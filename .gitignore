@@ -6,10 +6,10 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Production builds
-/client/.next/
-/client/out/
-/client/build/
-/client/dist/
+.next/
+out/
+build/
+dist/
 
 # Environment variables
 .env
@@ -18,32 +18,12 @@ pnpm-debug.log*
 .env.test.local
 .env.production.local
 
-# Database
-/server/prisma/dev.db
-/server/prisma/dev.db-journal
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
 # Logs
-logs
+logs/
 *.log
 
 # Runtime data
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
@@ -57,9 +37,6 @@ coverage/
 
 # Dependency directories
 jspm_packages/
-
-# TypeScript cache
-*.tsbuildinfo
 
 # Optional npm cache directory
 .npm
@@ -93,6 +70,10 @@ jspm_packages/
 .nuxt
 dist
 
+# Gatsby files
+.cache/
+public
+
 # Storybook build outputs
 .out
 .storybook-out
@@ -102,9 +83,60 @@ tmp/
 temp/
 
 # Editor directories and files
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw? 
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Prisma
+prisma/dev.db
+prisma/dev.db-journal
+
+# Uploads
+uploads/
+public/uploads/
+
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
+
+# Monitoring data
+monitoring/data/
+
+# Backup files
+*.backup
+*.bak
+
+# Cache files
+.cache/
+*.cache
+
+# TypeScript
+*.tsbuildinfo
+
+# Build artifacts
+build/
+dist/
+
+# Docker
+.dockerignore
+
+# Local development
+.local/

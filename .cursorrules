@@ -1,0 +1,215 @@
+# 🚀 Configuration Background Agent Cursor - ADS SaaS
+
+## 📋 Contexte du Projet
+
+ADS SaaS est une plateforme complète de gestion de campagnes publicitaires construite avec :
+- **Frontend** : Next.js 14 + TypeScript + Tailwind CSS + Framer Motion
+- **Backend** : Node.js + Express.js + Prisma + PostgreSQL
+- **Infrastructure** : Docker + Nginx + Prometheus + Grafana
+- **Paiements** : Stripe intégré
+- **Monitoring** : Système complet d'observabilité
+
+## 🎯 Règles de Développement
+
+### Architecture
+- Respecter l'architecture modulaire existante
+- Utiliser les patterns établis dans le projet
+- Maintenir la séparation client/server
+- Suivre les conventions de nommage TypeScript
+
+### Code Quality
+- Toujours utiliser TypeScript avec types stricts
+- Implémenter la gestion d'erreurs appropriée
+- Ajouter des commentaires pour les logiques complexes
+- Respecter les standards ESLint/Prettier
+
+### Sécurité
+- Valider toutes les entrées utilisateur
+- Utiliser les middlewares d'authentification existants
+- Respecter les principes de sécurité OWASP
+- Ne jamais exposer de secrets dans le code
+
+### Performance
+- Optimiser les requêtes de base de données
+- Implémenter le cache quand approprié
+- Minimiser les bundles JavaScript
+- Utiliser les optimisations Next.js
+
+## 🛠️ Stack Technique
+
+### Frontend (client/)
+- **Framework** : Next.js 14 avec App Router
+- **Styling** : Tailwind CSS + CSS Modules si nécessaire
+- **Animations** : Framer Motion pour les transitions
+- **State** : React Context + Hooks
+- **Forms** : React Hook Form + Zod validation
+- **Charts** : Chart.js pour les analytics
+
+### Backend (server/)
+- **Framework** : Express.js avec TypeScript
+- **Database** : Prisma ORM + PostgreSQL
+- **Auth** : JWT avec refresh tokens
+- **Validation** : Zod pour les schémas
+- **API** : RESTful avec documentation Swagger
+
+### Infrastructure
+- **Containerisation** : Docker + Docker Compose
+- **Reverse Proxy** : Nginx
+- **Monitoring** : Prometheus + Grafana
+- **SSL** : Let's Encrypt automatique
+- **CI/CD** : GitHub Actions
+
+## 📁 Structure des Dossiers
+
+```
+ADS/
+├── client/                 # Frontend Next.js
+│   ├── src/app/           # Pages et layouts (App Router)
+│   ├── src/components/    # Composants réutilisables
+│   ├── src/lib/          # Utilitaires et configurations
+│   └── src/types/        # Types TypeScript
+├── server/                # Backend Express.js
+│   ├── src/routes/       # Routes API
+│   ├── src/middleware/   # Middlewares
+│   ├── prisma/          # Schéma et migrations DB
+│   └── scripts/         # Scripts utilitaires
+├── scripts/              # Scripts de déploiement
+├── docs/                 # Documentation technique
+├── monitoring/           # Configuration monitoring
+└── nginx/               # Configuration Nginx
+```
+
+## 🔧 Conventions de Code
+
+### TypeScript
+- Utiliser des interfaces pour les types d'API
+- Préférer `type` pour les unions et intersections
+- Implémenter des types stricts pour les props
+- Utiliser des génériques quand approprié
+
+### React/Next.js
+- Utiliser les Server Components par défaut
+- Client Components seulement si nécessaire
+- Implémenter le loading et error boundaries
+- Optimiser les images avec next/image
+
+### API Design
+- RESTful avec verbes HTTP appropriés
+- Codes de statut HTTP corrects
+- Réponses JSON cohérentes
+- Documentation Swagger à jour
+
+### Base de Données
+- Utiliser Prisma pour toutes les opérations DB
+- Créer des migrations pour les changements de schéma
+- Implémenter des seeds pour les données de test
+- Optimiser les requêtes avec des relations
+
+## 🚀 Workflows de Développement
+
+### Nouvelle Fonctionnalité
+1. Créer une branche feature/ depuis main
+2. Implémenter frontend et backend
+3. Ajouter tests si nécessaire
+4. Mettre à jour la documentation
+5. Créer une Pull Request
+
+### Correction de Bug
+1. Créer une branche fix/ depuis main
+2. Identifier et corriger le problème
+3. Ajouter un test de régression
+4. Vérifier que les tests passent
+5. Créer une Pull Request
+
+### Déploiement
+1. Tests automatiques via GitHub Actions
+2. Build des images Docker
+3. Déploiement staging automatique
+4. Tests de validation
+5. Déploiement production
+
+## 🔒 Sécurité et Conformité
+
+### Authentification
+- JWT avec refresh tokens
+- Sessions sécurisées
+- Rate limiting sur les endpoints sensibles
+- Validation des permissions par rôle
+
+### Données
+- Chiffrement des données sensibles
+- Validation stricte des entrées
+- Protection contre les injections SQL
+- Audit trail pour les actions critiques
+
+### Infrastructure
+- Certificats SSL automatiques
+- Firewall et sécurité réseau
+- Monitoring des tentatives d'intrusion
+- Sauvegardes automatiques
+
+## 📊 Monitoring et Observabilité
+
+### Métriques à Surveiller
+- Temps de réponse des APIs
+- Taux d'erreur et disponibilité
+- Utilisation des ressources
+- Métriques business (conversions, etc.)
+
+### Alertes
+- Services down
+- Erreurs 5xx
+- Espace disque critique
+- Tentatives d'intrusion
+
+## 🎨 UI/UX Guidelines
+
+### Design System
+- Utiliser les composants existants
+- Respecter la palette de couleurs
+- Maintenir la cohérence visuelle
+- Optimiser pour mobile-first
+
+### Accessibilité
+- Support des lecteurs d'écran
+- Navigation au clavier
+- Contraste des couleurs
+- Textes alternatifs pour les images
+
+## 📚 Documentation
+
+### Code
+- Commentaires pour les logiques complexes
+- JSDoc pour les fonctions publiques
+- README à jour pour chaque module
+- Exemples d'utilisation
+
+### API
+- Documentation Swagger complète
+- Exemples de requêtes/réponses
+- Codes d'erreur documentés
+- Guide d'intégration
+
+### Déploiement
+- Instructions d'installation
+- Configuration d'environnement
+- Guide de troubleshooting
+- Procédures de rollback
+
+## 🔄 Maintenance
+
+### Mises à Jour
+- Maintenir les dépendances à jour
+- Tester les mises à jour majeures
+- Documenter les changements breaking
+- Planifier les migrations
+
+### Performance
+- Monitoring continu des performances
+- Optimisation des requêtes DB
+- Cache stratégique
+- Compression des assets
+
+---
+
+**Note** : Ce fichier .cursorrules guide le Background Agent Cursor pour fournir une assistance contextuelle et cohérente avec l'architecture et les standards du projet ADS SaaS. 
