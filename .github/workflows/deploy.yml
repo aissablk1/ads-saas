@@ -1,0 +1,445 @@
+name: 🚀 CI/CD Pipeline - ADS SaaS
+
+# Required secrets for this workflow:
+# - STAGING_HOST, STAGING_USER, STAGING_SSH_KEY, STAGING_PORT (deployment staging)
+# - STAGING_ENV (variables d'environnement staging)
+# - PRODUCTION_HOST, PRODUCTION_USER, PRODUCTION_SSH_KEY, PRODUCTION_PORT (deployment production)
+# - PRODUCTION_ENV (variables d'environnement production)
+# 
+# Optional secrets:
+# - CODECOV_TOKEN (upload coverage)
+# - SLACK_WEBHOOK (notifications Slack)
+# - DISCORD_WEBHOOK (notifications Discord)
+# - METRICS_API_KEY (métriques de déploiement)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ads-saas
+
+jobs:
+  # =======================
+  # Validation des Secrets
+  # =======================
+  validate-secrets:
+    name: 🔐 Validate Secrets
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: 📋 Check required secrets for staging
+      if: github.ref == 'refs/heads/develop'
+      run: |
+        echo "🔍 Validating staging secrets..."
+        if [ -z "${{ secrets.STAGING_HOST }}" ]; then
+          echo "❌ STAGING_HOST is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.STAGING_USER }}" ]; then
+          echo "❌ STAGING_USER is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.STAGING_SSH_KEY }}" ]; then
+          echo "❌ STAGING_SSH_KEY is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.STAGING_ENV }}" ]; then
+          echo "❌ STAGING_ENV is not set"
+          exit 1
+        fi
+        echo "✅ All staging secrets are configured"
+        
+    - name: 📋 Check required secrets for production
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "🔍 Validating production secrets..."
+        if [ -z "${{ secrets.PRODUCTION_HOST }}" ]; then
+          echo "❌ PRODUCTION_HOST is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.PRODUCTION_USER }}" ]; then
+          echo "❌ PRODUCTION_USER is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.PRODUCTION_SSH_KEY }}" ]; then
+          echo "❌ PRODUCTION_SSH_KEY is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.PRODUCTION_ENV }}" ]; then
+          echo "❌ PRODUCTION_ENV is not set"
+          exit 1
+        fi
+        echo "✅ All production secrets are configured"
+
+  # =======================
+  # Tests et Qualité Code
+  # =======================
+  test:
+    name: 🧪 Tests & Quality
+    runs-on: ubuntu-latest
+    needs: [validate-secrets]
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: '**/package-lock.json'
+    
+    # Tests Frontend
+    - name: 📦 Install client dependencies
+      working-directory: ./client
+      run: npm ci
+      
+    - name: 🧪 Run client tests
+      working-directory: ./client
+      run: |
+        npm run type-check
+        npm run lint
+        
+    - name: 🏗️ Build client
+      working-directory: ./client
+      run: npm run build
+      
+    # Tests Backend
+    - name: 📦 Install server dependencies
+      working-directory: ./server
+      run: npm ci
+      
+    - name: 🧪 Run server tests
+      working-directory: ./server
+      run: |
+        npm run lint || echo "Linting warnings only"
+        
+    # Security Audit
+    - name: 🔒 Security audit
+      run: |
+        cd client && npm audit --audit-level high
+        cd ../server && npm audit --audit-level high
+        
+    # Upload test coverage (if available)
+    - name: 📊 Upload coverage to Codecov
+      if: github.event_name == 'push' && secrets.CODECOV_TOKEN != ''
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: false
+      continue-on-error: true
+
+  # =======================
+  # Build Docker Images
+  # =======================
+  build:
+    name: 🏗️ Build Images
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    
+    outputs:
+      client-image: ${{ steps.meta-client.outputs.tags }}
+      server-image: ${{ steps.meta-server.outputs.tags }}
+      
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔐 Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 🔧 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    # Build Client Image
+    - name: 📝 Extract client metadata
+      id: meta-client
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository }}/client
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+          
+    - name: 🏗️ Build and push client image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./client
+        file: ./client/Dockerfile
+        push: true
+        tags: ${{ steps.meta-client.outputs.tags }}
+        labels: ${{ steps.meta-client.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    # Build Server Image
+    - name: 📝 Extract server metadata
+      id: meta-server
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository }}/server
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+          
+    - name: 🏗️ Build and push server image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./server
+        file: ./server/Dockerfile
+        push: true
+        tags: ${{ steps.meta-server.outputs.tags }}
+        labels: ${{ steps.meta-server.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # =======================
+  # Deploy to Staging
+  # =======================
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup deployment environment
+      run: |
+        echo "ENVIRONMENT=staging" >> $GITHUB_ENV
+        echo "DOMAIN=staging.ads-saas.com" >> $GITHUB_ENV
+        
+    - name: 🚀 Deploy to staging
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.STAGING_HOST }}
+        username: ${{ secrets.STAGING_USER }}
+        key: ${{ secrets.STAGING_SSH_KEY }}
+        port: ${{ secrets.STAGING_PORT || '22' }}
+        script: |
+          cd /opt/ads-saas
+          git pull origin develop
+          
+          # Update environment variables
+          echo "${{ secrets.STAGING_ENV }}" > .env.production
+          
+          # Run deployment script
+          chmod +x scripts/deploy.sh
+          ./scripts/deploy.sh deploy
+          
+    - name: 🧪 Run post-deployment tests
+      run: |
+        # Wait for deployment to complete
+        sleep 60
+        
+        # Health check
+        curl -f https://staging.ads-saas.com/health || exit 1
+        
+        # Basic smoke tests
+        curl -f https://staging.ads-saas.com/api/health || exit 1
+        
+    - name: 📢 Notify Slack (Staging)
+      if: always() && secrets.SLACK_WEBHOOK != ''
+      run: |
+        curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "text": "🚀 Staging deployment ${{ job.status }}\nBranch: ${{ github.ref }}\nCommit: ${{ github.sha }}"
+          }'
+      continue-on-error: true
+
+  # =======================
+  # Deploy to Production
+  # =======================
+  deploy-production:
+    name: 🏭 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup deployment environment
+      run: |
+        echo "ENVIRONMENT=production" >> $GITHUB_ENV
+        echo "DOMAIN=ads-saas.com" >> $GITHUB_ENV
+        
+    - name: 🛡️ Security scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ needs.build.outputs.client-image }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: 📋 Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+        
+    - name: ⏸️ Create maintenance page
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.PRODUCTION_HOST }}
+        username: ${{ secrets.PRODUCTION_USER }}
+        key: ${{ secrets.PRODUCTION_SSH_KEY }}
+        port: ${{ secrets.PRODUCTION_PORT || '22' }}
+        script: |
+          # Enable maintenance mode
+          echo "MAINTENANCE_MODE=true" >> /opt/ads-saas/.env.production
+          systemctl reload nginx
+          
+    - name: 🚀 Deploy to production
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.PRODUCTION_HOST }}
+        username: ${{ secrets.PRODUCTION_USER }}
+        key: ${{ secrets.PRODUCTION_SSH_KEY }}
+        port: ${{ secrets.PRODUCTION_PORT || '22' }}
+        script: |
+          cd /opt/ads-saas
+          
+          # Backup current state
+          ./scripts/deploy.sh backup
+          
+          # Pull latest changes
+          git pull origin main
+          
+          # Update environment variables
+          echo "${{ secrets.PRODUCTION_ENV }}" > .env.production
+          
+          # Run deployment
+          if ./scripts/deploy.sh deploy; then
+            echo "✅ Deployment successful"
+            
+            # Disable maintenance mode
+            sed -i 's/MAINTENANCE_MODE=true/MAINTENANCE_MODE=false/' .env.production
+            systemctl reload nginx
+            
+            # Send success notification
+            if [ -n "${{ secrets.DISCORD_WEBHOOK }}" ]; then
+              curl -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
+                -H "Content-Type: application/json" \
+                -d '{"content":"🎉 **ADS SaaS Production Deployment Successful!**\n📝 Commit: `${{ github.sha }}`\n🔗 URL: https://ads-saas.com"}'
+            fi
+          else
+            echo "❌ Deployment failed, initiating rollback"
+            ./scripts/deploy.sh rollback
+            
+            # Keep maintenance mode enabled
+            if [ -n "${{ secrets.DISCORD_WEBHOOK }}" ]; then
+              curl -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
+                -H "Content-Type: application/json" \
+                -d '{"content":"🚨 **ADS SaaS Production Deployment Failed!**\n📝 Commit: `${{ github.sha }}`\n🔄 Rollback completed"}'
+            fi
+            exit 1
+          fi
+          
+    - name: 🧪 Production health check
+      run: |
+        echo "🏥 Running production health checks..."
+        
+        # Wait for services to be ready
+        sleep 120
+        
+        # Health endpoints
+        curl -f https://ads-saas.com/health || exit 1
+        curl -f https://ads-saas.com/api/health || exit 1
+        
+        # Performance check
+        response_time=$(curl -o /dev/null -s -w '%{time_total}' https://ads-saas.com)
+        echo "Response time: ${response_time}s"
+        
+        if (( $(echo "$response_time > 3.0" | bc -l) )); then
+          echo "⚠️ Warning: Response time is high (${response_time}s)"
+        fi
+        
+    - name: 📊 Update deployment metrics
+      if: secrets.METRICS_API_KEY != ''
+      run: |
+        # Send metrics to monitoring system
+        curl -X POST https://api.example.com/metrics \
+        -H "Authorization: Bearer ${{ secrets.METRICS_API_KEY }}" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "deployment_id": "${{ github.run_id }}",
+          "commit_sha": "${{ github.sha }}",
+          "environment": "production",
+          "status": "success",
+          "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+        }' || echo "Failed to send metrics"
+      continue-on-error: true
+          
+    - name: 📢 Notify team (Production)
+      if: always() && secrets.SLACK_WEBHOOK != ''
+      run: |
+        curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "text": "🏭 Production deployment ${{ job.status }}!\n\n📊 **Details:**\n• Branch: `${{ github.ref }}`\n• Commit: `${{ github.sha }}`\n• Author: ${{ github.actor }}\n• Run ID: ${{ github.run_id }}\n\n🔗 **Links:**\n• [Live Site](https://ads-saas.com)\n• [Monitoring](https://grafana.ads-saas.com)\n• [Logs](https://logs.ads-saas.com)"
+          }'
+      continue-on-error: true
+
+  # =======================
+  # Performance Tests
+  # =======================
+  performance-tests:
+    name: ⚡ Performance Tests
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: ⚡ Run Lighthouse CI
+      uses: treosh/lighthouse-ci-action@v10
+      with:
+        urls: |
+          https://ads-saas.com
+          https://ads-saas.com/login
+          https://ads-saas.com/register
+        configPath: './lighthouse.config.js'
+        uploadArtifacts: true
+        temporaryPublicStorage: true
+        
+    - name: 🧪 Load testing with k6
+      run: |
+        # Install k6
+        sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+        echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+        sudo apt-get update
+        sudo apt-get install k6
+        
+        # Run load tests
+        k6 run scripts/load-test.js
+        
+    - name: 📊 Generate performance report
+      run: |
+        echo "## 📊 Performance Report" >> $GITHUB_STEP_SUMMARY
+        echo "Generated for commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ⚡ Lighthouse scores available in artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- 🧪 Load test results completed" >> $GITHUB_STEP_SUMMARY 

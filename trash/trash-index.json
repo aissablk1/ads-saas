@@ -1,0 +1,25 @@
+{
+  "trash_system": {
+    "version": "1.0.0",
+    "created": "2025-07-08T01:26:00Z",
+    "last_updated": "2025-07-08T01:26:00Z",
+    "total_items": 0,
+    "total_size_bytes": 0,
+    "retention_policy": {
+      "backups": "30_days",
+      "deleted": "7_days",
+      "temp": "24_hours"
+    },
+    "compression_enabled": true,
+    "encryption_enabled": false,
+    "max_size_mb": 1024
+  },
+  "items": [],
+  "statistics": {
+    "backups_count": 0,
+    "deleted_count": 0,
+    "temp_count": 0,
+    "recovered_count": 0,
+    "permanently_deleted_count": 0
+  }
+} 

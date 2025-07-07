@@ -1,0 +1,91 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "ADS SaaS Monitoring Dashboard",
+    "tags": ["ads-saas", "monitoring"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Requêtes HTTP par seconde",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{status_code}}"
+          }
+        ],
+        "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Temps de réponse API",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "gridPos": {"h": 9, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Utilisation CPU",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "CPU Usage %"
+          }
+        ],
+        "gridPos": {"h": 9, "w": 12, "x": 0, "y": 9}
+      },
+      {
+        "id": 4,
+        "title": "Utilisation Mémoire",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+            "legendFormat": "Memory Usage %"
+          }
+        ],
+        "gridPos": {"h": 9, "w": 12, "x": 12, "y": 9}
+      },
+      {
+        "id": 5,
+        "title": "Connexions PostgreSQL",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_stat_database_numbackends",
+            "legendFormat": "Active Connections"
+          }
+        ],
+        "gridPos": {"h": 9, "w": 12, "x": 0, "y": 18}
+      },
+      {
+        "id": 6,
+        "title": "Erreurs 5xx",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status_code=~\"5..\"}[5m]))",
+            "legendFormat": "5xx Errors/sec"
+          }
+        ],
+        "gridPos": {"h": 9, "w": 12, "x": 12, "y": 18}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+} 

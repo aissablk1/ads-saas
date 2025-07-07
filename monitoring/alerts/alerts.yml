@@ -1,0 +1,224 @@
+# Règles d'alerting pour ADS SaaS
+groups:
+  # ============================
+  # Alertes Infrastructure
+  # ============================
+  - name: infrastructure
+    rules:
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Service {{ $labels.job }} est down"
+          description: "Le service {{ $labels.job }} sur {{ $labels.instance }} est inaccessible depuis plus d'1 minute."
+
+      # CPU élevé
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Utilisation CPU élevée sur {{ $labels.instance }}"
+          description: "CPU usage is above 80% for more than 5 minutes. Current value: {{ $value }}%"
+
+      # Mémoire élevée
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Utilisation mémoire élevée sur {{ $labels.instance }}"
+          description: "Memory usage is above 85% for more than 5 minutes. Current value: {{ $value }}%"
+
+      # Espace disque faible
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Espace disque faible sur {{ $labels.instance }}"
+          description: "Disk usage is above 90% on {{ $labels.mountpoint }}. Current value: {{ $value }}%"
+
+  # ============================
+  # Alertes Application
+  # ============================
+  - name: application
+    rules:
+      # Taux d'erreur HTTP élevé
+      - alert: HighHTTPErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 3m
+        labels:
+          severity: critical
+          category: application
+        annotations:
+          summary: "Taux d'erreur HTTP élevé pour {{ $labels.job }}"
+          description: "HTTP error rate is above 5% for more than 3 minutes. Current rate: {{ $value }}%"
+
+      # Temps de réponse lent
+      - alert: SlowHTTPResponse
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "Temps de réponse lent pour {{ $labels.job }}"
+          description: "95th percentile response time is above 2 seconds. Current value: {{ $value }}s"
+
+      # Trop de connexions actives
+      - alert: TooManyActiveConnections
+        expr: node_netstat_Tcp_CurrEstab > 1000
+        for: 5m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "Trop de connexions TCP actives"
+          description: "Current active TCP connections: {{ $value }}"
+
+  # ============================
+  # Alertes Base de Données
+  # ============================
+  - name: database
+    rules:
+      # Base de données inaccessible
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "PostgreSQL est inaccessible"
+          description: "PostgreSQL database is down for more than 1 minute"
+
+      # Trop de connexions
+      - alert: PostgreSQLTooManyConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Trop de connexions PostgreSQL"
+          description: "Too many PostgreSQL connections. Current: {{ $value }}"
+
+      # Queries lentes
+      - alert: PostgreSQLSlowQueries
+        expr: pg_stat_activity_max_tx_duration > 300
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Requêtes PostgreSQL lentes"
+          description: "Slow PostgreSQL queries detected. Max duration: {{ $value }}s"
+
+      # Redis inaccessible
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "Redis est inaccessible"
+          description: "Redis cache is down for more than 1 minute"
+
+      # Redis mémoire élevée
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Utilisation mémoire Redis élevée"
+          description: "Redis memory usage is above 90%. Current: {{ $value }}%"
+
+  # ============================
+  # Alertes Business
+  # ============================
+  - name: business
+    rules:
+      # Pas de nouvelles inscriptions
+      - alert: NoNewRegistrations
+        expr: increase(user_registrations_total[1h]) == 0
+        for: 2h
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "Aucune nouvelle inscription"
+          description: "No new user registrations in the last 2 hours"
+
+      # Baisse du taux de conversion
+      - alert: LowConversionRate
+        expr: rate(campaign_conversions_total[1h]) / rate(campaign_views_total[1h]) * 100 < 1
+        for: 30m
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "Taux de conversion faible"
+          description: "Conversion rate is below 1%. Current: {{ $value }}%"
+
+      # Trop d'échecs de paiement
+      - alert: HighPaymentFailureRate
+        expr: rate(payment_failures_total[5m]) / rate(payment_attempts_total[5m]) * 100 > 10
+        for: 10m
+        labels:
+          severity: critical
+          category: business
+        annotations:
+          summary: "Taux d'échec de paiement élevé"
+          description: "Payment failure rate is above 10%. Current: {{ $value }}%"
+
+  # ============================
+  # Alertes Sécurité
+  # ============================
+  - name: security
+    rules:
+      # Trop de tentatives de connexion échouées
+      - alert: TooManyFailedLogins
+        expr: rate(login_failures_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "Trop de tentatives de connexion échouées"
+          description: "High rate of failed login attempts. Current rate: {{ $value }}/min"
+
+      # Attaque DDoS potentielle
+      - alert: PotentialDDoSAttack
+        expr: rate(nginx_http_requests_total[1m]) > 1000
+        for: 2m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "Attaque DDoS potentielle détectée"
+          description: "Very high request rate detected. Current: {{ $value }} req/sec"
+
+      # SSL certificate expiring
+      - alert: SSLCertificateExpiringSoon
+        expr: (ssl_certificate_expiry_timestamp - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "Certificat SSL expire bientôt"
+          description: "SSL certificate will expire in {{ $value }} days" 

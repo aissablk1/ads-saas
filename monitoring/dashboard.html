@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADS SaaS - Monitoring Local</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .metric-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .metric-value { font-size: 2em; font-weight: bold; color: #3498db; }
+        .metric-label { color: #7f8c8d; margin-top: 5px; }
+        .status-online { color: #27ae60; }
+        .status-offline { color: #e74c3c; }
+        .refresh-btn { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        .refresh-btn:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 ADS SaaS - Monitoring Local</h1>
+            <p>Tableau de bord en temps réel</p>
+        </div>
+        
+        <button class="refresh-btn" onclick="loadMetrics()">🔄 Actualiser</button>
+        
+        <div class="metrics-grid" id="metrics">
+            <!-- Les métriques seront chargées ici -->
+        </div>
+    </div>
+
+    <script>
+        function loadMetrics() {
+            fetch('metrics/current.json')
+                .then(response => response.json())
+                .then(data => {
+                    const metricsDiv = document.getElementById('metrics');
+                    const timestamp = new Date(data.timestamp * 1000).toLocaleString();
+                    
+                    metricsDiv.innerHTML = `
+                        <div class="metric-card">
+                            <div class="metric-value">${data.cpu_usage}%</div>
+                            <div class="metric-label">Utilisation CPU</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${data.memory_usage} MB</div>
+                            <div class="metric-label">Utilisation Mémoire</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${data.disk_usage}%</div>
+                            <div class="metric-label">Utilisation Disque</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value status-${data.services.server ? 'online' : 'offline'}">
+                                ${data.services.server ? '🟢' : '🔴'}
+                            </div>
+                            <div class="metric-label">Serveur Backend</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value status-${data.services.client ? 'online' : 'offline'}">
+                                ${data.services.client ? '🟢' : '🔴'}
+                            </div>
+                            <div class="metric-label">Client Frontend</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${data.uptime}</div>
+                            <div class="metric-label">Temps de fonctionnement</div>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des métriques:', error);
+                    document.getElementById('metrics').innerHTML = '<p>Erreur lors du chargement des métriques</p>';
+                });
+        }
+
+        // Charger les métriques au démarrage et toutes les 30 secondes
+        loadMetrics();
+        setInterval(loadMetrics, 30000);
+    </script>
+</body>
+</html>

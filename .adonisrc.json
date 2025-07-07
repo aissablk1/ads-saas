@@ -1,0 +1,45 @@
+{
+  "typescript": true,
+  "directories": {
+    "config": "config",
+    "public": "public",
+    "database": "database",
+    "incremental": "./tmp/incremental",
+    "tmp": "./tmp",
+    "start": "start"
+  },
+  "exceptionHandlerNamespace": "App/Exceptions/Handler",
+  "preloads": [
+    "./start/routes",
+    "./start/kernel"
+  ],
+  "providers": [
+    "./providers/AppProvider",
+    "@adonisjs/core/providers/AppProvider",
+    "@adonisjs/session/providers/SessionProvider",
+    "@adonisjs/auth/providers/AuthProvider",
+    "@adonisjs/lucid/providers/LucidProvider",
+    "@adonisjs/validator/providers/ValidatorProvider",
+    "@adonisjs/bodyparser/providers/BodyParserProvider",
+    "@adonisjs/encryption/providers/EncryptionProvider",
+    "@adonisjs/hash/providers/HashProvider",
+    "@adonisjs/logger/providers/LoggerProvider"
+  ],
+  "aceProviders": [
+    "@adonisjs/lucid/providers/LucidProvider",
+    "@adonisjs/lucid/providers/MigrationProvider",
+    "@adonisjs/lucid/providers/SeederProvider",
+    "@adonisjs/lucid/providers/FactoryProvider"
+  ],
+  "metaFiles": [
+    {
+      "pattern": "public/**",
+      "reloadServer": false
+    }
+  ],
+  "commands": [
+    "./commands",
+    "@adonisjs/core/commands",
+    "@adonisjs/lucid/commands"
+  ]
+} 
