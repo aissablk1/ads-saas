@@ -46,8 +46,8 @@ ADS SaaS est une plateforme complète de gestion de campagnes publicitaires cons
 - **Charts** : Chart.js pour les analytics
 
 ### Backend (server/)
-- **Framework** : Express.js avec TypeScript
-- **Database** : Prisma ORM + PostgreSQL
+- **Framework** : AdonisJS avec TypeScript
+- **Database** : Prisma ORM + SQLite (dev) / PostgreSQL (prod)
 - **Auth** : JWT avec refresh tokens
 - **Validation** : Zod pour les schémas
 - **API** : RESTful avec documentation Swagger
