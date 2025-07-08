@@ -14,14 +14,6 @@
     "db:seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@adonisjs/core": "^6.2.0",
-    "@adonisjs/auth": "^9.0.0",
-    "@adonisjs/mail": "^9.0.0",
-    "@adonisjs/lucid": "^21.0.0",
-    "@adonisjs/validator": "^7.0.0",
-    "@adonisjs/shield": "^8.2.0",
-    "@adonisjs/limiter": "^2.4.0",
-    "@adonisjs/redis": "^9.2.0",
     "@prisma/client": "^5.7.1",
     "axios": "^1.10.0",
     "bcryptjs": "^2.4.3",
@@ -50,7 +42,6 @@
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "@adonisjs/types": "^6.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
