@@ -1,254 +1,231 @@
-// Charger les variables d'environnement depuis la racine du projet
-require('dotenv').config({ path: '../.env' });
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Optimisations de performance avancées
+  // Performance Optimizations
+  reactStrictMode: true,
+  swcMinify: true,
+  poweredByHeader: false,
+  
+  // Experimental Features for Performance
   experimental: {
-    optimizeCss: true,
-    optimizePackageImports: ['@heroicons/react', 'lucide-react', 'framer-motion'],
+    // App Directory Features
+    appDir: true,
+    
+    // Performance Optimizations
+    optimizePackageImports: [
+      'lucide-react',
+      '@heroicons/react',
+      'framer-motion',
+      'chart.js',
+      'react-chartjs-2'
+    ],
+    
+    // Server Actions
+    serverActions: true,
+    
+    // Turbo Mode
     turbo: {
       rules: {
         '*.svg': {
           loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-    // Nouvelles optimisations
-    serverComponentsExternalPackages: ['@prisma/client'],
-    optimizeServerReact: true,
-    serverMinification: true,
-    serverSourceMaps: false,
+          as: '*.js'
+        }
+      }
+    }
   },
-
-  // Compression et optimisation des images avancée
-  images: {
-    formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60,
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Optimisations supplémentaires
-    unoptimized: false,
-    loader: 'default',
-    domains: [],
-    path: '/_next/image',
-  },
-
-  // Optimisation du bundle avancée
+  
+  // Webpack Optimizations
   webpack: (config, { dev, isServer }) => {
-    // Optimisations pour la production
-    if (!dev && !isServer) {
-      // Optimisation des chunks
+    // Production optimizations
+    if (!dev) {
+      config.optimization.usedExports = true;
+      config.optimization.sideEffects = false;
+      
+      // Tree shaking optimization
       config.optimization.splitChunks = {
         chunks: 'all',
+        minSize: 20000,
+        maxSize: 200000,
         cacheGroups: {
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
             chunks: 'all',
             priority: 10,
-            enforce: true,
+            reuseExistingChunk: true
           },
           common: {
             name: 'common',
             minChunks: 2,
-            chunks: 'all',
-            enforce: true,
             priority: 5,
-          },
-          // Chunks spécifiques pour les librairies lourdes
-          framer: {
-            test: /[\\/]node_modules[\\/]framer-motion[\\/]/,
-            name: 'framer-motion',
-            chunks: 'all',
-            priority: 20,
-          },
-          react: {
-            test: /[\\/]node_modules[\\/]react[\\/]/,
-            name: 'react',
-            chunks: 'all',
-            priority: 20,
-          },
-        },
+            reuseExistingChunk: true
+          }
+        }
       };
-
-      // Optimisation de la minification
-      config.optimization.minimize = true;
-      config.optimization.minimizer = config.optimization.minimizer || [];
     }
-
-    // Optimisation des SVG
+    
+    // SVG optimization
     config.module.rules.push({
       test: /\.svg$/,
-      use: ['@svgr/webpack'],
+      use: ['@svgr/webpack']
     });
-
-    // Optimisation des modules
+    
+    // Performance optimizations
     config.resolve.alias = {
       ...config.resolve.alias,
-      // Alias pour les imports fréquents
-      '@': require('path').resolve(__dirname, 'src'),
-      '@components': require('path').resolve(__dirname, 'src/components'),
-      '@lib': require('path').resolve(__dirname, 'src/lib'),
+      '@': './src',
+      '@/components': './src/components',
+      '@/lib': './src/lib',
+      '@/types': './src/types',
+      '@/styles': './src/styles'
     };
-
+    
     return config;
   },
-
-  // Headers de sécurité et cache optimisés
+  
+  // Image Optimization
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    domains: ['localhost', 'ads-saas.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.ads-saas.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.ads-saas.com',
+      }
+    ]
+  },
+  
+  // Compression
+  compress: true,
+  
+  // Headers for Security and Performance
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
           {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on'
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block'
+          },
+          {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN'
           },
           {
             key: 'X-Content-Type-Options',
-            value: 'nosniff',
+            value: 'nosniff'
           },
           {
             key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
+            value: 'strict-origin-when-cross-origin'
           },
-          // Headers de performance
           {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on',
-          },
-        ],
-      },
-      {
-        source: '/_next/static/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()'
+          }
+        ]
       },
       {
         source: '/api/(.*)',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate',
-          },
-        ],
+            value: 'public, max-age=0, s-maxage=86400, stale-while-revalidate=86400'
+          }
+        ]
       },
-      // Cache pour les images
       {
-        source: '/_next/image/(.*)',
+        source: '/_next/static/(.*)',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      }
     ];
   },
-
-  // Redirection et réécriture
+  
+  // Redirects for Performance
   async redirects() {
     return [
       {
-        source: '/admin',
-        destination: '/admin/dashboard',
-        permanent: true,
-      },
+        source: '/dashboard/home',
+        destination: '/dashboard',
+        permanent: true
+      }
     ];
   },
-
-  // Variables d'environnement publiques
-  env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
-  },
-
-  // Optimisation du build avancée
-  swcMinify: true,
-  compress: true,
-  poweredByHeader: false,
-  generateEtags: false,
-  // Optimisations supplémentaires
-  reactStrictMode: true,
-  trailingSlash: false,
-  skipTrailingSlashRedirect: true,
-  skipMiddlewareUrlNormalize: true,
-
-  // Configuration TypeScript
-  typescript: {
-    ignoreBuildErrors: false,
-  },
-
-  // Configuration ESLint
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
-
-  // Optimisation des performances
-  onDemandEntries: {
-    // Période de maintien des pages en mémoire
-    maxInactiveAge: 25 * 1000,
-    // Nombre de pages à maintenir
-    pagesBufferLength: 2,
-  },
-
+  
+  // Rewrites for API optimization
   async rewrites() {
     return [
-      // Routes API backend spécifiques avec cache
       {
-        source: '/api/auth/:path*',
-        destination: 'http://localhost:8000/api/auth/:path*',
-      },
-      {
-        source: '/api/users/:path*',
-        destination: 'http://localhost:8000/api/users/:path*',
-      },
-      {
-        source: '/api/campaigns/:path*',
-        destination: 'http://localhost:8000/api/campaigns/:path*',
-      },
-      {
-        source: '/api/analytics/:path*',
-        destination: 'http://localhost:8000/api/analytics/:path*',
-      },
-      {
-        source: '/api/subscriptions/:path*',
-        destination: 'http://localhost:8000/api/subscriptions/:path*',
-      },
-      {
-        source: '/api/notifications/:path*',
-        destination: 'http://localhost:8000/api/notifications/:path*',
-      },
-      {
-        source: '/api/files/:path*',
-        destination: 'http://localhost:8000/api/files/:path*',
-      },
-      {
-        source: '/api/integrations/:path*',
-        destination: 'http://localhost:8000/api/integrations/:path*',
-      },
-      {
-        source: '/api/sitemap/:path*',
-        destination: 'http://localhost:8000/api/sitemap/:path*',
-      },
-      {
-        source: '/api/admin/:path*',
-        destination: 'http://localhost:8000/api/admin/:path*',
-      },
-      // Routes API côté frontend (non redirigées)
-      {
-        source: '/api/translate/:path*',
-        destination: '/api/translate/:path*',
-      },
-    ]
+        source: '/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/:path*`
+      }
+    ];
   },
-}
+  
+  // Output optimization
+  output: 'standalone',
+  
+  // TypeScript configuration
+  typescript: {
+    ignoreBuildErrors: false
+  },
+  
+  // ESLint configuration
+  eslint: {
+    ignoreDuringBuilds: false
+  },
+  
+  // Transpile packages for optimization
+  transpilePackages: [
+    'lucide-react',
+    '@heroicons/react',
+    'framer-motion'
+  ],
+  
+  // Environment variables
+  env: {
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+    NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || 'dev'
+  },
+  
+  // Generate static exports for better performance
+  trailingSlash: false,
+  
+  // Optimize fonts
+  optimizeFonts: true,
+  
+  // Bundle analyzer (disabled by default)
+  ...(process.env.ANALYZE === 'true' && {
+    webpack: (config) => {
+      const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+      config.plugins.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: 'static',
+          openAnalyzer: false,
+          reportFilename: 'bundle-analyzer-report.html'
+        })
+      );
+      return config;
+    }
+  })
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig; 
